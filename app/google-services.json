@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318807681310",
+    "project_id": "spotcheck-3f622",
+    "storage_bucket": "spotcheck-3f622.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318807681310:android:c39d86d494a00eb98b410f",
+        "android_client_info": {
+          "package_name": "com.avalemon.spotcheck"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASDHh0PdCUkxfhXbA8J4CtmFXDAAmanWU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
