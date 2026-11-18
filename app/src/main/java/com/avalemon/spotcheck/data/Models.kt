@@ -2,7 +2,7 @@ package com.avalemon.spotcheck.data
 
 import java.util.Date
 
-/** A campus building. Coordinates live here once; all facilities inside share them. */
+/** A building on Grounds. Coordinates live here once; all facilities inside share them. */
 data class Building(
     val id: String,
     val name: String,
