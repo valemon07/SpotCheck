@@ -36,7 +36,6 @@ data class RatingSummary(val count: Long, val average: Double?) {
 
 data class Review(
     val userId: String,
-    val authorName: String,
     val rating: Int,
     val comment: String,
     val createdAt: Date?,

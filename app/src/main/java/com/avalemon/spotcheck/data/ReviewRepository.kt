@@ -17,7 +17,6 @@ class ReviewRepository(
     private val db: FirebaseFirestore,
     private val auth: FirebaseAuth,
     private val catalog: CatalogRepository,
-    private val authRepo: AuthRepository,
 ) {
     private fun uid(): String = auth.currentUser?.uid ?: error("Not signed in")
 
@@ -43,7 +42,6 @@ class ReviewRepository(
         require(rating in 1..5) { "Rating must be 1–5" }
         val uid = uid()
         val ref = catalog.reviews(buildingId, facilityId).document(uid)
-        val authorName = authRepo.authorName()
         db.runTransaction { tx ->
             if (tx.get(ref).exists()) {
                 tx.update(
@@ -51,7 +49,7 @@ class ReviewRepository(
                     mapOf(
                         "rating" to rating,
                         "comment" to comment,
-                        "authorName" to authorName,
+                        "authorName" to "", // reviews are anonymous; field kept for the deployed rules
                         "updatedAt" to FieldValue.serverTimestamp(),
                     ),
                 )
@@ -60,7 +58,7 @@ class ReviewRepository(
                     ref,
                     mapOf(
                         "userId" to uid,
-                        "authorName" to authorName,
+                        "authorName" to "", // reviews are anonymous; field kept for the deployed rules
                         "rating" to rating,
                         "comment" to comment,
                         "createdAt" to FieldValue.serverTimestamp(),
@@ -85,7 +83,6 @@ private fun DocumentSnapshot.toReview(): Review? {
     val behavior = DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
     return Review(
         userId = getString("userId") ?: id,
-        authorName = getString("authorName") ?: "Anonymous",
         rating = getLong("rating")?.toInt() ?: return null,
         comment = getString("comment").orEmpty(),
         createdAt = getDate("createdAt", behavior),

@@ -268,7 +268,8 @@ private fun ReviewCard(review: Review, highlight: Boolean = false) {
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(review.authorName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                // Reviews are anonymous: never show another student's name.
+                Text(if (highlight) "You" else "Anonymous", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 if (date != null) {
                     Text(
                         if (review.isEdited) "Edited $date" else date,

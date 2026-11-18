@@ -18,7 +18,7 @@ class AppContainer(app: Application) {
 
     val authRepository = AuthRepository(auth, db)
     val catalogRepository = CatalogRepository(db)
-    val reviewRepository = ReviewRepository(db, auth, catalogRepository, authRepository)
+    val reviewRepository = ReviewRepository(db, auth, catalogRepository)
     val settingsRepository = SettingsRepository(app)
 }
 
