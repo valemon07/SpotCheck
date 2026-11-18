@@ -50,7 +50,7 @@ data class Review(
 /** Curated categories. Unknown strings from Firestore fall back to a readable label. */
 enum class Category(val id: String, val label: String) {
     STUDY("study", "Study spaces"),
-    BATHROOM("bathroom", "Bathrooms"),
+    RESTROOM("restroom", "Restrooms"),
     LOUNGE("lounge", "Lounges"),
     PRINTER("printer", "Printers"),
     REFILL("refill", "Refill stations"),
