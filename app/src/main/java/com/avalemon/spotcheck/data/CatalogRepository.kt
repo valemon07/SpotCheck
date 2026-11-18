@@ -58,13 +58,16 @@ class CatalogRepository(private val db: FirebaseFirestore) {
     }
 }
 
-private fun DocumentSnapshot.toBuilding() = Building(
-    id = id,
-    name = getString("name") ?: id,
-    latitude = getDouble("latitude"),
-    longitude = getDouble("longitude"),
-    address = getString("address").orEmpty(),
-)
+private fun DocumentSnapshot.toBuilding(): Building {
+    val location = getGeoPoint("location")
+    return Building(
+        id = id,
+        name = getString("name") ?: id,
+        latitude = location?.latitude,
+        longitude = location?.longitude,
+        address = getString("address").orEmpty(),
+    )
+}
 
 private fun DocumentSnapshot.toFacility(): Facility? {
     val buildingId = reference.parent.parent?.id ?: return null
