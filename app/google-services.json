@@ -12,7 +12,20 @@
           "package_name": "com.avalemon.spotcheck"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "318807681310-b6831o7rs54biteve3q31udu499ajr9t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.avalemon.spotcheck",
+            "certificate_hash": "233f68a86d33c6b6b729c70f4c898d52bdab5e23"
+          }
+        },
+        {
+          "client_id": "318807681310-rh5sh5bb4fn129ko2ltgvqegdrjr76ak.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyASDHh0PdCUkxfhXbA8J4CtmFXDAAmanWU"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "318807681310-rh5sh5bb4fn129ko2ltgvqegdrjr76ak.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
