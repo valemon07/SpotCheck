@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -43,7 +44,12 @@ fun formatAverage(avg: Double): String = String.format(Locale.US, "%.1f", avg)
 
 /** Read-only stars (supports halves). Announced as a single phrase for TalkBack. */
 @Composable
-fun StarRow(rating: Double, modifier: Modifier = Modifier, starSize: Dp = 18.dp) {
+fun StarRow(
+    rating: Double,
+    modifier: Modifier = Modifier,
+    starSize: Dp = 18.dp,
+    tint: Color = MaterialTheme.colorScheme.tertiary,
+) {
     Row(
         modifier.clearAndSetSemantics { contentDescription = "${formatAverage(rating)} out of 5 stars" },
     ) {
@@ -53,7 +59,7 @@ fun StarRow(rating: Double, modifier: Modifier = Modifier, starSize: Dp = 18.dp)
                 rating >= i - 0.75 -> Icons.AutoMirrored.Outlined.StarHalf
                 else -> Icons.Outlined.StarOutline
             }
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(starSize))
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(starSize))
         }
     }
 }

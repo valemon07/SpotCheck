@@ -28,6 +28,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -214,7 +215,7 @@ private fun SummaryCard(vm: DetailsViewModel) {
             } else {
                 Text(formatAverage(s.average), style = MaterialTheme.typography.displayMediumEmphasized)
                 Column(Modifier.padding(start = 16.dp)) {
-                    StarRow(s.average, starSize = 22.dp)
+                    StarRow(s.average, starSize = 22.dp, tint = LocalContentColor.current)
                     Text("${s.count} review${if (s.count == 1L) "" else "s"}", style = MaterialTheme.typography.bodyMedium)
                 }
             }
