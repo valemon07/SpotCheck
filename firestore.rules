@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// SpotCheck Firestore security rules.
+// Catalog (buildings/facilities) is curated in the Firebase Console (Admin access bypasses rules),
+// so clients can never write it. Reviews are author-only; one review per user per facility (doc ID = UID).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- users/{uid}: private profile ----------
+    match /users/{uid} {
+      allow read: if isUser(uid);
+
+      allow create: if isUser(uid)
+        && request.resource.data.keys().hasOnly(['displayName', 'isAdmin', 'createdAt'])
+        && request.resource.data.keys().hasAll(['displayName', 'isAdmin', 'createdAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 50
+        && request.resource.data.isAdmin == false          // no self-promotion
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if isUser(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 50;
+
+      allow delete: if false;
+    }
+
+    // ---------- catalog: read-only for signed-in users ----------
+    match /buildings/{buildingId} {
+      allow read: if signedIn();
+      allow write: if false;
+
+      // ---------- reviews: shared reads, author-only writes ----------
+      match /facilities/{facilityId}/reviews/{uid} {
+        function validReview(data) {
+          return data.keys().hasOnly(['userId', 'authorName', 'rating', 'comment', 'createdAt', 'updatedAt'])
+            && data.keys().hasAll(['userId', 'authorName', 'rating', 'comment', 'createdAt', 'updatedAt'])
+            && data.userId == uid
+            && data.authorName is string && data.authorName.size() <= 50
+            && data.rating is int && data.rating >= 1 && data.rating <= 5
+            && data.comment is string && data.comment.size() <= 1000
+            && data.createdAt is timestamp
+            && data.updatedAt == request.time;
+        }
+
+        allow read: if signedIn();
+
+        allow create: if isUser(uid)
+          && validReview(request.resource.data)
+          && request.resource.data.createdAt == request.time;
+
+        allow update: if isUser(uid)
+          && validReview(request.resource.data)
+          // author and creation time are immutable
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['rating', 'comment', 'authorName', 'updatedAt']);
+
+        allow delete: if isUser(uid);
+      }
+    }
+
+    // Collection-group read for loading every facility in one query.
+    // (Also covers direct gets of buildings/{b}/facilities/{f}.) No client writes.
+    match /{path=**}/facilities/{facilityId} {
+      allow read: if signedIn();
+    }
+  }
+}
