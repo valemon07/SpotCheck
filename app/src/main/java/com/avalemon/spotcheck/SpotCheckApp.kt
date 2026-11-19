@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.avalemon.spotcheck.data.AuthRepository
 import com.avalemon.spotcheck.data.CatalogRepository
+import com.avalemon.spotcheck.data.LocationRepository
 import com.avalemon.spotcheck.data.ReviewRepository
 import com.avalemon.spotcheck.data.SettingsRepository
 import com.google.firebase.Firebase
@@ -20,6 +21,7 @@ class AppContainer(app: Application) {
     val catalogRepository = CatalogRepository(db)
     val reviewRepository = ReviewRepository(db, auth, catalogRepository)
     val settingsRepository = SettingsRepository(app)
+    val locationRepository = LocationRepository(app)
 }
 
 class SpotCheckApp : Application() {
