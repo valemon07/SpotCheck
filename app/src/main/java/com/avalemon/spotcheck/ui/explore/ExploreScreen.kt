@@ -159,6 +159,9 @@ fun ExploreScreen(
     var searching by rememberSaveable { mutableStateOf(vm.query.isNotEmpty()) }
     fun closeSearch() { searching = false; vm.onQuery("") }
     BackHandler(enabled = searching) { closeSearch() }
+    // Full map → back returns to the list. ExploreMap's own handler (clear selection) is composed
+    // later, so it wins while a building is selected.
+    BackHandler(enabled = vm.view == ExploreView.MAP && !searching) { vm.onView(ExploreView.LIST) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listState = rememberLazyListState()
@@ -297,7 +300,10 @@ private fun FacilityList(
             // the title before any leftover drag becomes a pull-to-refresh gesture.
             modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         ) {
-            if (showFilters) item(key = "filters") { FilterRow(vm) }
+            if (showFilters) {
+                item(key = "mapPreview") { MapPreviewCard(vm, onOpen = { vm.onView(ExploreView.MAP) }) }
+                item(key = "filters") { FilterRow(vm) }
+            }
             if (vm.visibleFacilities.isEmpty()) {
                 item(key = "empty") {
                     MessageState(
