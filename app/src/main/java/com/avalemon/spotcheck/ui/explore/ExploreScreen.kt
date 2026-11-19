@@ -1,6 +1,12 @@
 package com.avalemon.spotcheck.ui.explore
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -26,8 +32,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Settings
@@ -53,6 +59,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -67,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -75,6 +83,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,6 +98,7 @@ import com.avalemon.spotcheck.data.locationLine
 import com.avalemon.spotcheck.ui.components.LoadingState
 import com.avalemon.spotcheck.ui.components.MessageState
 import com.avalemon.spotcheck.ui.components.RatingBadge
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -103,10 +113,45 @@ fun ExploreScreen(
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) { message?.let { snackbar.showSnackbar(it); onMessageShown() } }
 
-    // Refresh averages whenever Explore comes back into view (e.g. after saving a review).
-    // (No-op until the first catalog load has finished.)
+    // Location: ask once per Explore session; browsing works the same without it.
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var askedLocation by rememberSaveable { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { result ->
+        askedLocation = true
+        val granted = result.values.any { it }
+        vm.onLocationPermission(granted)
+        if (!granted) scope.launch {
+            val r = snackbar.showSnackbar(
+                "Location is off. You can still browse all of Grounds.",
+                actionLabel = "Settings",
+                withDismissAction = true,
+            )
+            if (r == SnackbarResult.ActionPerformed) {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                )
+            }
+        }
+    }
+    fun requestLocation() {
+        askedLocation = true // Set first: the dialog pauses/resumes Explore before the result arrives.
+        permissionLauncher.launch(
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+        )
+    }
+
+    // Refresh averages (and location) whenever Explore comes back into view, e.g. after saving a
+    // review or returning from system settings. Rating refresh is a no-op until the catalog loads.
     LifecycleResumeEffect(Unit) {
         vm.refreshRatings()
+        val granted = vm.checkLocationPermission()
+        when {
+            granted || askedLocation -> vm.onLocationPermission(granted)
+            else -> requestLocation()
+        }
         onPauseOrDispose { }
     }
 
@@ -128,6 +173,11 @@ fun ExploreScreen(
                         title = { Text("Explore") },
                         scrollBehavior = scrollBehavior,
                         actions = {
+                            if (!vm.hasLocationPermission) {
+                                IconButton(onClick = ::requestLocation, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(Icons.Outlined.LocationOn, contentDescription = "Use my location")
+                                }
+                            }
                             IconButton(onClick = { searching = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Rounded.Search, contentDescription = "Search")
                             }
@@ -150,7 +200,8 @@ fun ExploreScreen(
         },
         floatingActionButton = {
             // Shrinks to an icon while the list is scrolled; the label stays as the accessible name.
-            SmallExtendedFloatingActionButton(
+            // Hidden while the map's building panel is open so the two don't overlap.
+            if (!(vm.view == ExploreView.MAP && !searching && vm.buildingId != null)) SmallExtendedFloatingActionButton(
                 onClick = { onWriteReview(vm.buildingId) },
                 expanded = !listState.canScrollBackward,
                 icon = { Icon(Icons.Rounded.RateReview, contentDescription = "Write a review") },
@@ -166,8 +217,7 @@ fun ExploreScreen(
                     Icons.Outlined.CloudOff, "Couldn't load facilities", vm.error!!,
                     actionLabel = "Retry", onAction = { vm.retry() },
                 )
-                vm.view == ExploreView.MAP && !searching ->
-                    MapPlaceholder(vm, onShowList = { vm.onView(ExploreView.LIST) })
+                vm.view == ExploreView.MAP && !searching -> ExploreMap(vm, onOpenFacility)
                 else -> FacilityList(vm, listState, scrollBehavior, showFilters = !searching, onOpenFacility)
             }
         }
@@ -264,6 +314,7 @@ private fun FacilityList(
                     facility = f,
                     buildingName = catalog.buildingName(f),
                     summary = vm.summaries[f.key] ?: if (vm.summaries.isEmpty()) null else RatingSummary.Empty,
+                    distance = vm.distanceLabel(f),
                     onClick = { onOpenFacility(f) },
                     modifier = Modifier.animateItem(),
                 )
@@ -282,11 +333,11 @@ private fun FilterRow(vm: ExploreViewModel) {
     ) {
         item {
             DropdownChip(
-                label = vm.sort.label,
+                label = vm.effectiveSort.label,
                 active = false,
                 leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Sort, null, Modifier.size(FilterChipDefaults.IconSize)) },
-                options = SortOrder.entries,
-                selected = vm.sort,
+                options = vm.sortOptions,
+                selected = vm.effectiveSort,
                 optionText = { it.label },
                 onSelect = vm::onSort,
                 description = "Sort by",
@@ -358,6 +409,7 @@ fun FacilityRow(
     summary: RatingSummary?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    distance: String? = null,
 ) {
     Card(
         onClick = onClick,
@@ -368,7 +420,7 @@ fun FacilityRow(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(facility.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
-                    facility.locationLine(buildingName),
+                    listOfNotNull(facility.locationLine(buildingName), distance).joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -379,42 +431,6 @@ fun FacilityRow(
                 )
             }
             RatingBadge(summary)
-        }
-    }
-}
-
-/** Placeholder until the interactive map ships; doubles as a building picker. */
-@Composable
-private fun MapPlaceholder(vm: ExploreViewModel, onShowList: () -> Unit) {
-    val catalog = vm.catalog ?: return
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            Text(
-                "Map coming soon. Pick a building:",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        items(catalog.buildings.values.sortedBy { it.name }, key = { it.id }) { b ->
-            val count = catalog.facilities.count { it.buildingId == b.id && (vm.category == null || it.category == vm.category) }
-            Card(
-                onClick = { vm.onBuilding(b.id); onShowList() },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Apartment, null, tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(b.name, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            if (count == 1) "1 facility" else "$count facilities",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                }
-            }
         }
     }
 }

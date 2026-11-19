@@ -77,3 +77,24 @@ fun Facility.locationLine(buildingName: String): String =
     listOf(buildingName, locator.ifBlank { floor?.let { "Floor $it" } ?: "" })
         .filter { it.isNotBlank() }
         .joinToString(" · ")
+
+/** Straight-line distance in meters from ([lat], [lng]) to this building, or null without coordinates. */
+fun Building.distanceMetersTo(lat: Double, lng: Double): Float? {
+    val bLat = latitude ?: return null
+    val bLng = longitude ?: return null
+    val out = FloatArray(1)
+    android.location.Location.distanceBetween(lat, lng, bLat, bLng, out)
+    return out[0]
+}
+
+/** "0.3 mi" / "450 ft" or "1.2 km" / "450 m". */
+fun formatDistance(meters: Float, unit: DistanceUnit): String = when (unit) {
+    DistanceUnit.MILES -> {
+        val miles = meters / 1609.344f
+        if (miles < 0.1f) "${(meters * 3.28084f).toInt().roundTo(10)} ft" else "%.1f mi".format(miles)
+    }
+    DistanceUnit.KILOMETERS ->
+        if (meters < 1000f) "${meters.toInt().roundTo(10)} m" else "%.1f km".format(meters / 1000f)
+}
+
+private fun Int.roundTo(step: Int): Int = ((this + step / 2) / step) * step
