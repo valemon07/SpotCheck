@@ -1,5 +1,7 @@
 package com.avalemon.spotcheck.ui.settings
 
+import androidx.compose.ui.res.painterResource
+import com.avalemon.spotcheck.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -8,11 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Logout
-import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,7 +60,7 @@ fun SettingsScreen(
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
+                        Icon(painterResource(R.drawable.ic_arrow_back), "Back")
                     }
                 },
             )
@@ -91,7 +88,7 @@ fun SettingsScreen(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.AutoMirrored.Rounded.Logout, null)
+                    Icon(painterResource(R.drawable.ic_logout), null)
                     Text("Sign out", Modifier.padding(start = 8.dp))
                 }
             }
@@ -125,7 +122,7 @@ private fun CategoryPicker(selected: String?, onSelect: (String?) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(label(selected), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Icon(Icons.Rounded.ArrowDropDown, contentDescription = "Choose default category")
+                Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = "Choose default category")
             }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -133,7 +130,7 @@ private fun CategoryPicker(selected: String?, onSelect: (String?) -> Unit) {
                 DropdownMenuItem(
                     text = { Text(label(id)) },
                     onClick = { onSelect(id); expanded = false },
-                    trailingIcon = if (id == selected) ({ Icon(Icons.Rounded.Check, contentDescription = "Selected") }) else null,
+                    trailingIcon = if (id == selected) ({ Icon(painterResource(R.drawable.ic_check), contentDescription = "Selected") }) else null,
                 )
             }
         }

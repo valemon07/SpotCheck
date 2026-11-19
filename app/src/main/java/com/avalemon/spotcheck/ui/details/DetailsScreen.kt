@@ -1,5 +1,7 @@
 package com.avalemon.spotcheck.ui.details
 
+import androidx.compose.ui.res.painterResource
+import com.avalemon.spotcheck.R
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,13 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.RateReview
-import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -87,7 +82,7 @@ fun DetailsScreen(
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
+                        Icon(painterResource(R.drawable.ic_arrow_back), "Back")
                     }
                 },
                 actions = {
@@ -103,7 +98,7 @@ fun DetailsScreen(
                             context.startActivity(Intent.createChooser(send, "Share facility"))
                         },
                         enabled = vm.facility != null,
-                    ) { Icon(Icons.Rounded.Share, "Share facility") }
+                    ) { Icon(painterResource(R.drawable.ic_share), "Share facility") }
                 },
             )
         },
@@ -112,7 +107,7 @@ fun DetailsScreen(
         val facility = vm.facility
         when {
             facility == null && vm.error != null -> MessageState(
-                Icons.Outlined.ErrorOutline, "Something went wrong", vm.error!!,
+                painterResource(R.drawable.ic_error), "Something went wrong", vm.error!!,
                 modifier = Modifier.padding(padding), actionLabel = "Retry", onAction = { vm.load() },
             )
             facility == null -> LoadingState(Modifier.padding(padding))
@@ -183,7 +178,7 @@ fun DetailsScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            icon = { Icon(Icons.Outlined.Delete, null) },
+            icon = { Icon(painterResource(R.drawable.ic_delete), null) },
             title = { Text("Delete your review?") },
             text = { Text("This removes your rating and comment for this facility.") },
             confirmButton = {
@@ -235,7 +230,7 @@ private fun MyReviewSection(
     if (!loaded) return
     if (review == null) {
         Button(onClick = onWrite, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Outlined.RateReview, null)
+            Icon(painterResource(R.drawable.ic_rate_review), null)
             Text("Write a review", Modifier.padding(start = 8.dp))
         }
         return
@@ -245,11 +240,11 @@ private fun MyReviewSection(
         ReviewCard(review, highlight = true)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onWrite, enabled = !deleting, shapes = ButtonDefaults.shapes()) {
-                Icon(Icons.Outlined.Edit, null)
+                Icon(painterResource(R.drawable.ic_edit), null)
                 Text("Edit", Modifier.padding(start = 8.dp))
             }
             OutlinedButton(onClick = onDelete, enabled = !deleting, shapes = ButtonDefaults.shapes()) {
-                Icon(Icons.Outlined.Delete, null)
+                Icon(painterResource(R.drawable.ic_delete), null)
                 Text(if (deleting) "Deleting…" else "Delete", Modifier.padding(start = 8.dp))
             }
         }

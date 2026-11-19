@@ -1,5 +1,7 @@
 package com.avalemon.spotcheck.ui.components
 
+import androidx.compose.ui.res.painterResource
+import com.avalemon.spotcheck.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,10 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.StarHalf
-import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -28,7 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -54,10 +52,10 @@ fun StarRow(
         modifier.clearAndSetSemantics { contentDescription = "${formatAverage(rating)} out of 5 stars" },
     ) {
         for (i in 1..5) {
-            val icon: ImageVector = when {
-                rating >= i - 0.25 -> Icons.Rounded.Star
-                rating >= i - 0.75 -> Icons.AutoMirrored.Outlined.StarHalf
-                else -> Icons.Outlined.StarOutline
+            val icon: Painter = when {
+                rating >= i - 0.25 -> painterResource(R.drawable.ic_star_filled)
+                rating >= i - 0.75 -> painterResource(R.drawable.ic_star_half)
+                else -> painterResource(R.drawable.ic_star)
             }
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(starSize))
         }
@@ -81,7 +79,7 @@ fun RatingBadge(summary: RatingSummary?, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (hasReviews) {
-                Icon(Icons.Rounded.Star, null, modifier = Modifier.size(16.dp)) // inherits onTertiaryContainer
+                Icon(painterResource(R.drawable.ic_star_filled), null, modifier = Modifier.size(16.dp)) // inherits onTertiaryContainer
                 Text(
                     "${formatAverage(avg)} (${summary.count})",
                     style = MaterialTheme.typography.labelLarge,
@@ -112,7 +110,7 @@ fun StarRatingInput(rating: Int, onRatingChange: (Int) -> Unit, enabled: Boolean
                     .semantics { contentDescription = if (i == 1) "1 star" else "$i stars" },
             ) {
                 Icon(
-                    if (rating >= i) Icons.Rounded.Star else Icons.Outlined.StarOutline,
+                    if (rating >= i) painterResource(R.drawable.ic_star_filled) else painterResource(R.drawable.ic_star),
                     contentDescription = null,
                     tint = if (rating >= i) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(40.dp),
@@ -131,7 +129,7 @@ fun LoadingState(modifier: Modifier = Modifier) {
 /** Empty / error placeholder with an optional action button. */
 @Composable
 fun MessageState(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     body: String,
     modifier: Modifier = Modifier,

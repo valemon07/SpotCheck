@@ -65,7 +65,6 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.kotlinx.coroutines.play.services)
-    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.maps.compose)
     implementation(libs.play.services.location)
     testImplementation(libs.junit)

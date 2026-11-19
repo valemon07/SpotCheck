@@ -1,5 +1,7 @@
 package com.avalemon.spotcheck.ui.signin
 
+import androidx.compose.ui.res.painterResource
+import com.avalemon.spotcheck.R
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,11 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
@@ -93,7 +90,7 @@ fun SignInScreen(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Rounded.Place, null,
+                            painterResource(R.drawable.ic_location_on), null,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(48.dp),
                         )
@@ -139,7 +136,7 @@ fun SignInScreen(
                     trailingIcon = {
                         IconButton(onClick = { showPassword = !showPassword }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
-                                if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                if (showPassword) painterResource(R.drawable.ic_visibility_off) else painterResource(R.drawable.ic_visibility),
                                 contentDescription = if (showPassword) "Hide password" else "Show password",
                             )
                         }
@@ -221,7 +218,7 @@ private fun ErrorBanner(message: String) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Outlined.ErrorOutline, contentDescription = "Error")
+            Icon(painterResource(R.drawable.ic_error), contentDescription = "Error")
             Text(message, style = MaterialTheme.typography.bodyMedium)
         }
     }

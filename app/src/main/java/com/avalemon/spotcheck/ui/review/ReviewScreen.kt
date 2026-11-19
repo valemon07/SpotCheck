@@ -1,5 +1,7 @@
 package com.avalemon.spotcheck.ui.review
 
+import androidx.compose.ui.res.painterResource
+import com.avalemon.spotcheck.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,10 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
@@ -72,7 +70,7 @@ fun ReviewScreen(
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back without saving")
+                        Icon(painterResource(R.drawable.ic_arrow_back), "Back without saving")
                     }
                 },
             )
@@ -81,7 +79,7 @@ fun ReviewScreen(
         val catalog = vm.catalog
         when {
             catalog == null && vm.loadError != null -> MessageState(
-                Icons.Outlined.CloudOff, "Couldn't load facilities", vm.loadError!!,
+                painterResource(R.drawable.ic_cloud_off), "Couldn't load facilities", vm.loadError!!,
                 modifier = Modifier.padding(padding), actionLabel = "Retry", onAction = { vm.loadCatalog() },
             )
             catalog == null -> LoadingState(Modifier.padding(padding))
@@ -189,7 +187,7 @@ private fun <T> Picker(
             label = { Text(label) },
             placeholder = { Text("Select ${label.lowercase()}") },
             supportingText = supporting?.let { { Text(it) } },
-            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, null) },
+            trailingIcon = { Icon(painterResource(R.drawable.ic_arrow_drop_down), null) },
             modifier = Modifier.fillMaxWidth(),
         )
         // Transparent overlay so the whole field opens the menu (read-only fields swallow taps otherwise).

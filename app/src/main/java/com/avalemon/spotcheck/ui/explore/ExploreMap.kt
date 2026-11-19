@@ -1,12 +1,12 @@
 package com.avalemon.spotcheck.ui.explore
 
+import androidx.compose.ui.res.painterResource
+import com.avalemon.spotcheck.R
 import android.location.Location
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -84,7 +84,7 @@ private fun BuildingMarker(
         zIndex = if (selected) 1f else 0f,
         onClick = { onClick(); true }, // true suppresses the default info window.
     ) {
-        Icon(Icons.Filled.Place, contentDescription = null, tint = tint, modifier = Modifier.size(size))
+        Icon(painterResource(R.drawable.ic_location_on), contentDescription = null, tint = tint, modifier = Modifier.size(size))
     }
 }
 

@@ -1,5 +1,7 @@
 package com.avalemon.spotcheck.ui.explore
 
+import androidx.compose.ui.res.painterResource
+import com.avalemon.spotcheck.R
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -32,22 +34,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.RateReview
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -206,26 +192,26 @@ fun ExploreScreen(
                         actions = {
                             if (!vm.hasLocationPermission) {
                                 IconButton(onClick = ::requestLocation, shapes = IconButtonDefaults.shapes()) {
-                                    Icon(Icons.Outlined.LocationOn, contentDescription = "Use my location")
+                                    Icon(painterResource(R.drawable.ic_location_on), contentDescription = "Use my location")
                                 }
                             }
                             IconButton(onClick = ::openSearch, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Rounded.Search, contentDescription = "Search")
+                                Icon(painterResource(R.drawable.ic_search), contentDescription = "Search")
                             }
                             IconButton(
                                 onClick = { vm.onView(if (vm.view == ExploreView.LIST) ExploreView.MAP else ExploreView.LIST) },
                                 shapes = IconButtonDefaults.shapes(),
                             ) {
                                 Icon(
-                                    if (vm.view == ExploreView.LIST) Icons.Outlined.Map else Icons.AutoMirrored.Outlined.List,
+                                    if (vm.view == ExploreView.LIST) painterResource(R.drawable.ic_map) else painterResource(R.drawable.ic_list),
                                     contentDescription = if (vm.view == ExploreView.LIST) "Show map" else "Show list",
                                 )
                             }
                             IconButton(onClick = { vm.refresh() }, enabled = !vm.refreshing, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Rounded.Refresh, contentDescription = "Refresh")
+                                Icon(painterResource(R.drawable.ic_refresh), contentDescription = "Refresh")
                             }
                             IconButton(onClick = onOpenSettings, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                                Icon(painterResource(R.drawable.ic_settings), contentDescription = "Settings")
                             }
                         },
                     )
@@ -238,7 +224,7 @@ fun ExploreScreen(
             if (vm.view == ExploreView.LIST) SmallExtendedFloatingActionButton(
                 onClick = { onWriteReview(vm.buildingId) },
                 expanded = !listState.canScrollBackward,
-                icon = { Icon(Icons.Rounded.RateReview, contentDescription = "Write a review") },
+                icon = { Icon(painterResource(R.drawable.ic_rate_review), contentDescription = "Write a review") },
                 text = { Text("Write a review") },
             )
         },
@@ -282,7 +268,7 @@ private fun ExploreSheet(
         when {
             vm.loading -> LoadingState(Modifier.height(200.dp))
             catalog == null -> MessageState(
-                Icons.Outlined.CloudOff, "Couldn't load facilities", vm.error ?: "",
+                painterResource(R.drawable.ic_cloud_off), "Couldn't load facilities", vm.error ?: "",
                 actionLabel = "Retry", onAction = { vm.retry() },
             )
             else -> {
@@ -297,7 +283,7 @@ private fun ExploreSheet(
                     if (vm.visibleFacilities.isEmpty()) {
                         item(key = "empty") {
                             MessageState(
-                                Icons.Outlined.SearchOff,
+                                painterResource(R.drawable.ic_search_off),
                                 if (catalog.facilities.isEmpty()) "No facilities yet" else "No matches",
                                 if (catalog.facilities.isEmpty()) "The catalog is empty. Refresh once facilities are added."
                                 else "Try a different search, building or category.",
@@ -341,7 +327,7 @@ private fun SheetHeader(vm: ExploreViewModel) {
         )
         if (building != null) {
             IconButton(onClick = { vm.onBuilding(null) }, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.Rounded.Close, contentDescription = "Show all buildings")
+                Icon(painterResource(R.drawable.ic_close), contentDescription = "Show all buildings")
             }
         }
     }
@@ -357,7 +343,7 @@ private fun SearchTopBar(query: String, onQuery: (String) -> Unit, onClose: () -
     TopAppBar(
         navigationIcon = {
             IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Close search")
+                Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Close search")
             }
         },
         title = {
@@ -369,7 +355,7 @@ private fun SearchTopBar(query: String, onQuery: (String) -> Unit, onClose: () -
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQuery("") }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+                            Icon(painterResource(R.drawable.ic_close), contentDescription = "Clear search")
                         }
                     }
                 },
@@ -400,7 +386,7 @@ private fun FilterRow(vm: ExploreViewModel) {
             DropdownChip(
                 label = vm.effectiveSort.label,
                 active = false,
-                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Sort, null, Modifier.size(FilterChipDefaults.IconSize)) },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_sort), null, Modifier.size(FilterChipDefaults.IconSize)) },
                 options = vm.sortOptions,
                 selected = vm.effectiveSort,
                 optionText = { it.label },
@@ -451,16 +437,16 @@ private fun <T> DropdownChip(
             onClick = { expanded = true },
             label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             leadingIcon = if (active) {
-                { Icon(Icons.Rounded.Check, null, Modifier.size(FilterChipDefaults.IconSize)) }
+                { Icon(painterResource(R.drawable.ic_check), null, Modifier.size(FilterChipDefaults.IconSize)) }
             } else leadingIcon,
-            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = description) },
+            trailingIcon = { Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = description) },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { opt ->
                 DropdownMenuItem(
                     text = { Text(optionText(opt)) },
                     onClick = { onSelect(opt); expanded = false },
-                    trailingIcon = if (opt == selected) ({ Icon(Icons.Rounded.Check, contentDescription = "Selected") }) else null,
+                    trailingIcon = if (opt == selected) ({ Icon(painterResource(R.drawable.ic_check), contentDescription = "Selected") }) else null,
                 )
             }
         }
