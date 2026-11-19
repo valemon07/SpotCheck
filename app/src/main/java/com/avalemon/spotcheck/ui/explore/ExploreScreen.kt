@@ -13,8 +13,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,8 +44,11 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.RateReview
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -54,8 +61,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -64,11 +71,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,17 +81,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.avalemon.spotcheck.data.Category
@@ -100,6 +105,11 @@ import com.avalemon.spotcheck.ui.components.MessageState
 import com.avalemon.spotcheck.ui.components.RatingBadge
 import kotlinx.coroutines.launch
 
+/**
+ * Explore is one live map with the facility list in a standard bottom sheet on top of it.
+ * List mode = sheet expanded, leaving a strip of map at the top as a preview; map mode = sheet
+ * collapsed to its filters. The filters live in the sheet, so they work in both modes.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExploreScreen(
@@ -155,15 +165,34 @@ fun ExploreScreen(
         onPauseOrDispose { }
     }
 
-    // Search mode swaps the title bar for a search field; the list below filters live.
+    // Search mode swaps the title bar for a search field and shows the list.
     var searching by rememberSaveable { mutableStateOf(vm.query.isNotEmpty()) }
+    fun openSearch() { searching = true; vm.onView(ExploreView.LIST) }
     fun closeSearch() { searching = false; vm.onQuery("") }
     BackHandler(enabled = searching) { closeSearch() }
-    // Full map → back returns to the list. ExploreMap's own handler (clear selection) is composed
+    // Map mode → back returns to the list. ExploreMap's own handler (clear selection) is composed
     // later, so it wins while a building is selected.
     BackHandler(enabled = vm.view == ExploreView.MAP && !searching) { vm.onView(ExploreView.LIST) }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // Keep the sheet and vm.view in sync both ways: the toggle/back/pins drive the sheet, and
+    // dragging the sheet updates the view (which is what rotation and DataStore defaults restore).
+    val sheetState = rememberStandardBottomSheetState(
+        initialValue = if (vm.view == ExploreView.LIST) SheetValue.Expanded else SheetValue.PartiallyExpanded,
+    )
+    val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
+    LaunchedEffect(vm.view) {
+        when (vm.view) {
+            ExploreView.LIST -> if (sheetState.currentValue != SheetValue.Expanded) sheetState.expand()
+            ExploreView.MAP -> if (sheetState.currentValue != SheetValue.PartiallyExpanded) sheetState.partialExpand()
+        }
+    }
+    LaunchedEffect(sheetState) {
+        snapshotFlow { sheetState.currentValue }.collect { value ->
+            val view = if (value == SheetValue.Expanded) ExploreView.LIST else ExploreView.MAP
+            if (vm.view != view) vm.onView(view)
+        }
+    }
+
     val listState = rememberLazyListState()
 
     Scaffold(
@@ -172,16 +201,15 @@ fun ExploreScreen(
                 if (isSearching) {
                     SearchTopBar(query = vm.query, onQuery = vm::onQuery, onClose = ::closeSearch)
                 } else {
-                    MediumFlexibleTopAppBar(
+                    TopAppBar(
                         title = { Text("Explore") },
-                        scrollBehavior = scrollBehavior,
                         actions = {
                             if (!vm.hasLocationPermission) {
                                 IconButton(onClick = ::requestLocation, shapes = IconButtonDefaults.shapes()) {
                                     Icon(Icons.Outlined.LocationOn, contentDescription = "Use my location")
                                 }
                             }
-                            IconButton(onClick = { searching = true }, shapes = IconButtonDefaults.shapes()) {
+                            IconButton(onClick = ::openSearch, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Rounded.Search, contentDescription = "Search")
                             }
                             IconButton(
@@ -193,6 +221,9 @@ fun ExploreScreen(
                                     contentDescription = if (vm.view == ExploreView.LIST) "Show map" else "Show list",
                                 )
                             }
+                            IconButton(onClick = { vm.refresh() }, enabled = !vm.refreshing, shapes = IconButtonDefaults.shapes()) {
+                                Icon(Icons.Rounded.Refresh, contentDescription = "Refresh")
+                            }
                             IconButton(onClick = onOpenSettings, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Outlined.Settings, contentDescription = "Settings")
                             }
@@ -203,8 +234,8 @@ fun ExploreScreen(
         },
         floatingActionButton = {
             // Shrinks to an icon while the list is scrolled; the label stays as the accessible name.
-            // Hidden while the map's building panel is open so the two don't overlap.
-            if (!(vm.view == ExploreView.MAP && !searching && vm.buildingId != null)) SmallExtendedFloatingActionButton(
+            // List mode only: in map mode it would sit on top of the sheet's filter chips.
+            if (vm.view == ExploreView.LIST) SmallExtendedFloatingActionButton(
                 onClick = { onWriteReview(vm.buildingId) },
                 expanded = !listState.canScrollBackward,
                 icon = { Icon(Icons.Rounded.RateReview, contentDescription = "Write a review") },
@@ -213,15 +244,104 @@ fun ExploreScreen(
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                vm.loading -> LoadingState()
-                vm.error != null && vm.catalog == null -> MessageState(
-                    Icons.Outlined.CloudOff, "Couldn't load facilities", vm.error!!,
-                    actionLabel = "Retry", onAction = { vm.retry() },
-                )
-                vm.view == ExploreView.MAP && !searching -> ExploreMap(vm, onOpenFacility)
-                else -> FacilityList(vm, listState, scrollBehavior, showFilters = !searching, onOpenFacility)
+        BoxWithConstraints(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+            // Expanded sheet always leaves this much map visible: the "preview card" of list mode.
+            val mapStrip = min(200.dp, maxHeight * 0.35f)
+            val sheetHeight = maxHeight - mapStrip
+            val dragHandleHeight = 48.dp // BottomSheetDefaults.DragHandle: 4dp bar + 22dp padding each side.
+            val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val peekHeight = navBar + if (vm.view == ExploreView.MAP && vm.buildingId != null) maxHeight * 0.45f else 140.dp
+            val bottomInset = if (sheetState.currentValue == SheetValue.Expanded) sheetHeight else peekHeight
+
+            BottomSheetScaffold(
+                scaffoldState = scaffoldState,
+                sheetPeekHeight = peekHeight,
+                // Plain surface so the surfaceContainerLow facility cards stand out, as before.
+                sheetContainerColor = MaterialTheme.colorScheme.surface,
+                sheetContent = {
+                    ExploreSheet(vm, listState, showFilters = !searching, onOpenFacility, Modifier.height(sheetHeight - dragHandleHeight))
+                },
+            ) {
+                ExploreMap(vm, bottomInset)
+            }
+        }
+    }
+}
+
+/** Sheet content: filters, a count/building header, then the facility list (or load/error states). */
+@Composable
+private fun ExploreSheet(
+    vm: ExploreViewModel,
+    listState: LazyListState,
+    showFilters: Boolean,
+    onOpenFacility: (Facility) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth()) {
+        val catalog = vm.catalog
+        when {
+            vm.loading -> LoadingState(Modifier.height(200.dp))
+            catalog == null -> MessageState(
+                Icons.Outlined.CloudOff, "Couldn't load facilities", vm.error ?: "",
+                actionLabel = "Retry", onAction = { vm.retry() },
+            )
+            else -> {
+                if (showFilters) FilterRow(vm)
+                SheetHeader(vm)
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    if (vm.visibleFacilities.isEmpty()) {
+                        item(key = "empty") {
+                            MessageState(
+                                Icons.Outlined.SearchOff,
+                                if (catalog.facilities.isEmpty()) "No facilities yet" else "No matches",
+                                if (catalog.facilities.isEmpty()) "The catalog is empty. Refresh once facilities are added."
+                                else "Try a different search, building or category.",
+                                modifier = Modifier.height(280.dp),
+                            )
+                        }
+                    }
+                    items(vm.visibleFacilities, key = { it.key }) { f ->
+                        FacilityRow(
+                            facility = f,
+                            buildingName = catalog.buildingName(f),
+                            summary = vm.summaries[f.key] ?: if (vm.summaries.isEmpty()) null else RatingSummary.Empty,
+                            distance = vm.distanceLabel(f),
+                            onClick = { onOpenFacility(f) },
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** "12 facilities", or "Rotunda · 4 facilities · 480 ft" with a clear button when a building is picked. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SheetHeader(vm: ExploreViewModel) {
+    val building = vm.buildingId?.let { vm.catalog?.buildings?.get(it) }
+    Row(
+        Modifier.fillMaxWidth().height(48.dp).padding(start = 20.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            listOfNotNull(building?.name, facilityCount(vm.visibleFacilities.size), vm.distanceLabel(building))
+                .joinToString(" · "),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (building != null) {
+            IconButton(onClick = { vm.onBuilding(null) }, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.Rounded.Close, contentDescription = "Show all buildings")
             }
         }
     }
@@ -268,74 +388,13 @@ private fun SearchTopBar(query: String, onQuery: (String) -> Unit, onClose: () -
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun FacilityList(
-    vm: ExploreViewModel,
-    listState: LazyListState,
-    scrollBehavior: TopAppBarScrollBehavior,
-    showFilters: Boolean,
-    onOpenFacility: (Facility) -> Unit,
-) {
-    val catalog = vm.catalog ?: return
-    val pullState = rememberPullToRefreshState()
-    PullToRefreshBox(
-        isRefreshing = vm.refreshing,
-        onRefresh = { vm.refresh() },
-        state = pullState,
-        modifier = Modifier.fillMaxSize(),
-        indicator = {
-            PullToRefreshDefaults.LoadingIndicator(
-                state = pullState,
-                isRefreshing = vm.refreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
-        },
-    ) {
-        LazyColumn(
-            state = listState,
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            // The app bar's connection sits inside pull-to-refresh, so scrolling back up re-expands
-            // the title before any leftover drag becomes a pull-to-refresh gesture.
-            modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        ) {
-            if (showFilters) {
-                item(key = "mapPreview") { MapPreviewCard(vm, onOpen = { vm.onView(ExploreView.MAP) }) }
-                item(key = "filters") { FilterRow(vm) }
-            }
-            if (vm.visibleFacilities.isEmpty()) {
-                item(key = "empty") {
-                    MessageState(
-                        Icons.Outlined.SearchOff,
-                        if (catalog.facilities.isEmpty()) "No facilities yet" else "No matches",
-                        if (catalog.facilities.isEmpty()) "The catalog is empty. Pull to refresh once facilities are added."
-                        else "Try a different search, building or category.",
-                        modifier = Modifier.height(320.dp),
-                    )
-                }
-            }
-            items(vm.visibleFacilities, key = { it.key }) { f ->
-                FacilityRow(
-                    facility = f,
-                    buildingName = catalog.buildingName(f),
-                    summary = vm.summaries[f.key] ?: if (vm.summaries.isEmpty()) null else RatingSummary.Empty,
-                    distance = vm.distanceLabel(f),
-                    onClick = { onOpenFacility(f) },
-                    modifier = Modifier.animateItem(),
-                )
-            }
-        }
-    }
-}
-
 /** Sort, category and building share one control style: a dropdown chip showing its current value. */
 @Composable
 private fun FilterRow(vm: ExploreViewModel) {
     val catalog = vm.catalog ?: return
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(bottom = 6.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 2.dp),
     ) {
         item {
             DropdownChip(
